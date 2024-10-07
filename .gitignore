@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.log
+
+# Binary or compiled files
+*.out
+*.exe
+
+# input files that don't need to be uploaded
+category*.csv
+Transactions*.csv

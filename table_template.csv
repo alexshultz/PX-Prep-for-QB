@@ -1,0 +1,3 @@
+Deposit To,Date,Memo,Received From,From Account,Line Memo,Check No.,Pmt Meth.,Class,Amount,Less Cash Back,Cash back Accnt.,Cash back Memo
+,Date,,,,,,,,Credit,,,
+Checking,,Deposit,Square,POS Clearing,transfer,,,,,,,
