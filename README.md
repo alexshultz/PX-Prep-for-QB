@@ -1,174 +1,133 @@
 # PX-Prep-for-QB
 
-**PX-Prep-for-QB** is a set of Python scripts designed to process Point-of-Sale (POS) and bank transaction data for easy import into QuickBooks. These scripts automate the formatting, calculation, and categorization of sales and transaction data, ensuring that it is ready for financial reporting.
+**PX-Prep-for-QB** helps prepare your Square Point-of-Sale (POS) and bank transaction data for QuickBooks. It automatically organizes your sales data and bank deposits into a format that QuickBooks can understand.
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Features](#features)
-3. [Installation](#installation)
-    - [Prerequisites](#prerequisites)
-    - [Setting up the Conda Environment](#setting-up-the-conda-environment)
-4. [Scripts Overview](#scripts-overview)
-    - [px_prep_bank_data.py](#px_prep_bank_datapy)
-    - [pos_sales_processor.py](#pos_sales_processorpy)
-5. [Usage](#usage)
-    - [Running `px_prep_bank_data.py`](#running-px_prep_bank_datapy)
-    - [Running `pos_sales_processor.py`](#running-pos_sales_processorpy)
+1. [What Does This Do?](#what-does-this-do)
+2. [Before You Start](#before-you-start)
+3. [Installation Guide](#installation-guide)
+4. [How to Use](#how-to-use)
+5. [Getting Help](#getting-help)
 6. [License](#license)
 
 ---
 
-## Project Overview
+## What Does This Do?
 
-PX-Prep-for-QB is built for organizations that use POS systems and need to prepare the data for seamless import into QuickBooks. The project includes two main scripts:
+This tool includes two main parts:
 
-1. **`px_prep_bank_data.py`**: Processes bank transaction data, filters Square Inc. transactions, and formats them for QuickBooks import.
-2. **`pos_sales_processor.py`**: Processes POS sales data, calculates sales tax, and generates a structured CSV file ready for QuickBooks.
+1. **Bank Data Processor** (`px_prep_bank_data.py`): 
+   - Finds all your Square deposits in your bank statement
+   - Groups them by date
+   - Creates QuickBooks-ready deposit records
 
----
-
-## Features
-
-- **Bank Data Processing**: Filters transactions and groups them by day for easier reporting.
-- **POS Sales Processing**: Automatically calculates sales tax and organizes sales categories such as admissions, donations, and gift sales.
-- **Configurable Output**: Both scripts allow flexible output file and folder naming, either manually specified or automatically generated.
-- **Easy-to-Use**: Designed to be run as simple command-line scripts, making it easy to integrate into your workflow.
-
----
-
-## Installation
-
-### Prerequisites
-
-Before using this project, you need:
-
-- **Conda** (package management system and environment manager)
-- **Python 3.x** (installed within a Conda environment)
-
-### Setting up the Conda Environment
-
-To install and run PX-Prep-for-QB, follow these steps:
-
-1. **Clone the Repository**:
-2. 
-    ````bash
-    git clone https://github.com/yourusername/PX-Prep-for-QB.git
-    cd PX-Prep-for-QB
-    ````
-
-2. **Create and activate a Conda environment**:
-    You already have a Conda environment `qb` created with Python 3 installed:
-    
-    ````bash
-    conda create --name qb python=3
-    ````
-    Activate the environment:
-    ````bash
-    conda activate qb
-    ````
-
-3. **Install the required dependencies**:
-    The project uses `pandas` for data processing. Install the dependencies listed in the `requirements.txt`:
-    
-    ````bash
-    pip install -r requirements.txt
-    ````
+2. **POS Data Processor** (`px_prep_pos_data.py`):
+   - Takes your Square sales data
+   - Organizes it into four categories:
+     * Admissions
+     * Gift Shop Sales
+     * Donations
+     * Sales Tax
+   - Creates daily totals ready for QuickBooks
 
 ---
 
-## Scripts Overview
+## Before You Start
 
-### `px_prep_bank_data.py`
+You'll need:  
 
-#### Purpose:
-This script processes bank transaction data, specifically filtering transactions from Square Inc., and outputs them in a format suitable for import into QuickBooks.
-
-#### Key Features:
-- Filters transactions where `Credit` is not null and the description starts with `Square Inc`.
-- Saves each day’s transactions in a separate CSV file.
-- Flexible output folder specification, either manually set or auto-generated.
+1. A computer running Windows, Mac, or Linux  
+2. Your Square data:  
+ 	* Sales data exported from Square  
+	* Bank statement showing Square deposits (in CSV format)  
+3. Someone to help install the required software (if you're not familiar with Python)
 
 ---
 
-### `pos_sales_processor.py`
+## Installation Guide
 
-#### Purpose:
-This script processes POS sales data, calculates the appropriate sales tax, and outputs formatted sales data into a CSV file ready for QuickBooks import.
+### Step 1: Install Required Software
 
-#### Key Features:
-- Handles different categories like admissions, gift sales, donations, and sales tax.
-- Automatically calculates and processes sales tax for each category.
-- Option to specify output file, or the script will generate a default output file.
+1. Download and install Miniconda:
+   - Go to: https://docs.conda.io/en/latest/miniconda.html
+   - Choose the installer for your system (Windows, Mac, or Linux)
+   - Run the installer (accept all default options)
 
----
+2. After installation, find and open:
+   - Windows: "Anaconda Prompt" in the Start Menu
+   - Mac/Linux: Terminal application
 
-## Usage
+### Step 2: Set Up the Project
 
-Once the environment is set up and the required dependencies are installed, you can run the scripts using the following instructions:
+Copy and paste these commands into the Anaconda Prompt/Terminal, pressing Enter after each line:
 
-### Running `px_prep_bank_data.py`
+```bash
+# Download the project
+git clone https://github.com/yourusername/PX-Prep-for-QB.git
 
-#### Command-Line Usage:
+# Go to the project folder
+cd PX-Prep-for-QB
 
-````bash
-python px_prep_bank_data.py <input_file> [-o <output_folder>] [-t <template_file>]
-````
+# Create a new environment
+conda create --name qb python=3
 
-#### Parameters:
+# Activate the environment
+conda activate qb
 
-- `<input_file>`: The path to the CSV file containing bank transaction data.
-- `-o`, `--output`: (Optional) The output folder where the processed CSV files will be saved. If not provided, the script will create a folder with the name of the input file and append `_output`.
-- `-t`, `--template`: (Optional) The path to the template CSV file that defines the output structure. Defaults to `table_template.csv` in the working directory.
-
-#### Example:
-
-````bash
-python px_prep_bank_data.py transactions.csv -o ./output_folder -t ./template_file.csv
-````
-
-This will process the `transactions.csv` file, save the output in `output_folder`, and use `template_file.csv` to structure the output.
+# Install required packages
+pip install -r requirements.txt
+```
 
 ---
 
-### Running `pos_sales_processor.py`
+## How to Use
 
-#### Command-Line Usage:
+### Processing Bank Data
 
-````bash
-python pos_sales_processor.py <input_csv> [-o <output_csv>]
-````
+1. Export your bank statement as a CSV file
+2. Open Anaconda Prompt/Terminal
+3. Type:
+```bash
+conda activate qb
+python px_prep_bank_data.py your_bank_statement.csv
+```
+4. Find the processed files in the new folder ending with "_output"
 
-#### Parameters:
+### Processing Square Sales Data
 
-- `<input_csv>`: The path to the CSV file containing sales data.
-- `-o`, `--output`: (Optional) The output CSV file to write the processed data. If not provided, it defaults to `<input_file>_output.csv`.
+1. Export your Square sales data as a CSV file
+   * In `squareup.com` look for 
+2. Open Anaconda Prompt/Terminal
+3. Type:
+```bash
+conda activate qb
+python px_prep_pos_data.py your_square_export.csv
+```
+4. Find the processed file ending with "_output.csv"
 
-#### Example:
+---
 
-````bash
-python pos_sales_processor.py sales_data.csv -o formatted_output.csv
-````
+## Getting Help
 
-This will process the `sales_data.csv` file and save the formatted output to `formatted_output.csv`.
+If you run into problems:  
+
+1. Make sure you've activated the environment (`conda activate qb`)
+2. Check that your CSV files are in the same folder as the scripts
+3. Verify your Square export includes all transaction details
+4. Contact your technical support person if you need additional help
 
 ---
 
 ## License
 
-This project is licensed under the **CC0 1.0 Universal (CC0 1.0) Public Domain Dedication**. This means that the code is released into the public domain, and you are free to use, modify, and distribute it without any restrictions.
-
-For more information, see the [LICENSE](LICENSE) file or visit the [Creative Commons website](https://creativecommons.org/publicdomain/zero/1.0/).
+This is free to use and modify as needed (CC0 1.0 Universal Public Domain Dedication).
 
 ---
 
-### Additional Notes
-
-- You may need to customize the template CSV file used in `px_prep_bank_data.py` based on the structure required by your QuickBooks import.
-- Test the output files with a small dataset before using them with your actual QuickBooks data to ensure the formats are correct.
-
-Feel free to contribute or raise any issues you encounter while using PX-Prep-for-QB!
-
->
+### Tips
+- Always keep backup copies of your original files
+- Test with a small amount of data first
+- Verify the output in QuickBooks before processing large amounts of data

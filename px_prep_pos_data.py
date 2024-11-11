@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 from typing import Dict, List
 import os
+from pandas import to_datetime  # Add this to your imports if needed
 
 # Constants
 DEPOSIT_TO = "POS Clearing"
@@ -32,7 +33,24 @@ CLASS_CODES: Dict[str, str] = {
 }
 
 def clean_amount(value: any) -> float:
-    """Convert string amount to float, removing any non-numeric characters."""
+    """
+    Convert a monetary value to float, handling various input formats.
+    
+    Args:
+        value: Input value that could be string (e.g. '$1,234.56'), float, int, 
+              pandas.Series, or None/NaN
+    
+    Returns:
+        float: Cleaned monetary amount
+        
+    Examples:
+        >>> clean_amount('$1,234.56')
+        1234.56
+        >>> clean_amount(1234.56)
+        1234.56
+        >>> clean_amount(pd.NA)
+        0.0
+    """
     if isinstance(value, (float, int)):
         return float(value)
     if pd.isna(value):
@@ -42,58 +60,101 @@ def clean_amount(value: any) -> float:
     return float(value.replace('$', '').replace(',', ''))
 
 def process_sales_data(input_csv: str, output_csv: str) -> None:
-    """Process sales data from input CSV and write formatted output to another CSV."""
+    """
+    Process Square POS sales data and write formatted output for QuickBooks.
+    
+    Reads transaction data, groups by date and category, calculates daily totals,
+    and writes records in QuickBooks import format.
+    
+    Args:
+        input_csv: Path to input CSV file from Square
+        output_csv: Path where formatted output CSV will be written
+        
+    Categories are mapped as follows:
+    - 'Admission' -> POS:admissions
+    - 'Donation' -> POS:donation
+    - All others -> POS:sales (gift shop items)
+    
+    Sales tax is accumulated daily and output as POS:tax
+    """
     try:
-        input_df = pd.read_csv(input_csv)
-        dates = input_df.columns[1:]
+        # Read the input CSV
+        df = pd.read_csv(input_csv)
+        
+        # Convert monetary columns to float first
+        df['Net Sales'] = df['Net Sales'].apply(clean_amount)
+        df['Tax'] = df['Tax'].apply(clean_amount)
+        
+        # Convert Date column to datetime
+        df['Date'] = pd.to_datetime(df['Date'])
+        
+        # Map categories to our four output categories
+        df['ProcessedCategory'] = df['Category'].apply(
+            lambda x: 'Admission' if x == 'Admission'
+                     else 'Donation' if x == 'Donation'
+                     else 'gift sale'
+        )
+        
+        # Group by Date and ProcessedCategory, sum Net Sales and Tax
+        # Using numeric aggregation instead of string concatenation
+        grouped_data = df.groupby(['Date', 'ProcessedCategory'], as_index=False).agg({
+            'Net Sales': 'sum',
+            'Tax': 'sum'
+        })
+        
+        # Get unique dates
+        dates = sorted(grouped_data['Date'].unique())
 
         with open(output_csv, 'w', newline='') as output_file:
             writer = csv.writer(output_file)
             writer.writerow(HEADER)
             
             for date in dates:
-                date_data = input_df[['Category', date]].set_index('Category')[date]
-                admissions_sales_tax = process_admissions(writer, date, date_data)
-                gift_sales_tax = process_gift_sales(writer, date, date_data)
-                process_sales_tax(writer, date, admissions_sales_tax + gift_sales_tax)
-                process_donations(writer, date, date_data)
+                date_data = grouped_data[grouped_data['Date'] == date]
+                
+                # Track total tax for the day
+                total_tax = 0
+                
+                # Process admissions (POS:admissions)
+                admission_data = date_data[date_data['ProcessedCategory'] == 'Admission']
+                if not admission_data.empty:
+                    net_amount = admission_data['Net Sales'].iloc[0]
+                    write_record(writer, str(date.date()), 'Admission', net_amount)
+                    total_tax += admission_data['Tax'].iloc[0]
+                
+                # Process gift sales (POS:sales)
+                gift_sales = date_data[date_data['ProcessedCategory'] == 'gift sale']
+                if not gift_sales.empty:
+                    net_amount = gift_sales['Net Sales'].sum()
+                    write_record(writer, str(date.date()), 'gift sale', net_amount)
+                    total_tax += gift_sales['Tax'].sum()
+                
+                # Process sales tax (POS:tax)
+                if total_tax > 0:
+                    write_record(writer, str(date.date()), 'sales tax', total_tax)
+                
+                # Process donations (POS:donation)
+                donation_data = date_data[date_data['ProcessedCategory'] == 'Donation']
+                if not donation_data.empty:
+                    amount = donation_data['Net Sales'].iloc[0]
+                    write_record(writer, str(date.date()), 'Donation', amount)
+                
     except Exception as e:
-        print(f"An error occurred while processing the file: {e}")                
+        print(f"An error occurred while processing the file: {e}")
 
-def process_admissions(writer: csv.writer, date: str, date_data: pd.Series) -> float:
-    """Process admissions data."""
-    sales_tax = 0
-    amount = clean_amount(date_data.get('Admission', 0))
-    if amount > 0:
-        net_amount = amount / (1 + TAX_RATE)
-        sales_tax = amount - net_amount
-        write_record(writer, date, 'Admission', net_amount)
-    return sales_tax
-
-def process_gift_sales(writer: csv.writer, date: str, date_data: pd.Series) -> float:
-    """Process gift sales and associated sales tax."""
-    sales_tax = 0
-    gift_sales_series = date_data[~date_data.index.isin(['Admission', 'Donation'])]
-    if not gift_sales_series.empty:
-        gift_sales_total = sum(clean_amount(value) for value in gift_sales_series)
-        if gift_sales_total > 0:
-            write_record(writer, date, 'gift sale', gift_sales_total)
-            sales_tax = gift_sales_total * TAX_RATE
-    return sales_tax
-
-def process_sales_tax(writer: csv.writer, date: str, total_sales_tax) -> None:
-    """Process sales tax data."""
-    if total_sales_tax > 0:
-        write_record(writer, date, 'sales tax', total_sales_tax)
-
-def process_donations(writer: csv.writer, date: str, date_data: pd.Series) -> None:
-    """Process donations data."""
-    amount = clean_amount(date_data.get('Donation', 0))
-    if amount > 0:
-        write_record(writer, date, 'Donation', amount)
-
-def write_record(writer: csv.writer, date:str, category: str, amount: float) -> None:
-    """Write a record to the CSV file."""
+def write_record(writer: csv.writer, date: str, category: str, amount: float) -> None:
+    """
+    Write a single record to the QuickBooks import CSV.
+    
+    Args:
+        writer: CSV writer object
+        date: Transaction date in YYYY-MM-DD format
+        category: Transaction category (Admission, gift sale, sales tax, or Donation)
+        amount: Transaction amount
+        
+    Writes a row with QuickBooks import fields including deposit account,
+    date, memo, received from, category codes, and amount.
+    """
     writer.writerow([
         DEPOSIT_TO, date, MEMO, RECEIVED_FROM, FROM_ACCOUNT,
         LINE_MEMOS[category], None, None, CLASS_CODES[category],

@@ -1,153 +1,109 @@
 {
-  "title": "POSDataProcessor",
-  "description": "The `POSDataProcessor` script is designed to process Point-of-Sale (POS) sales data from an input CSV file, applying tax calculations, organizing sales categories (e.g., `Admission`, `Donation`, `gift sale`), and generating a structured CSV output file suitable for financial systems such as QuickBooks.",
+  "title": "PX Prep POS Data",
+  "description": "A script that processes Square Point-of-Sale (POS) data and formats it for QuickBooks import. It consolidates daily transactions into four categories (admissions, gift sales, donations, and sales tax) and generates a properly formatted CSV file.",
   "sections": [
     {
       "title": "Overview",
-      "content": "The script processes sales data for various categories, including admissions, gift sales, and donations. It automatically calculates sales tax for applicable categories, organizes the data by date, and writes it to a structured CSV output file. The script uses a class-based approach for modularity and maintainability."
+      "content": "The script processes Square POS export data, handling monetary values, categorizing sales, and generating daily totals. It maps all non-Admission/Donation categories to 'gift sale' and properly handles sales tax calculations."
     },
     {
-      "title": "Class Structure",
-      "content": "The script is structured around the `POSDataProcessor` class, which encapsulates all the logic for processing the sales data."
-    },
-    {
-      "title": "POSDataProcessor Class",
+      "title": "Functions",
       "content": {
-        "attributes": [
+        "functions": [
           {
-            "name": "input_csv",
-            "description": "Path to the input CSV file containing the POS sales data."
+            "name": "clean_amount(value: any) -> float",
+            "description": "Converts monetary values to float, handling various input formats including strings with currency symbols, commas, and negative values. Also handles pandas.Series and None/NaN values.",
+            "examples": [
+              "clean_amount('$1,234.56') -> 1234.56",
+              "clean_amount(-$9.21) -> -9.21",
+              "clean_amount(pd.NA) -> 0.0"
+            ]
           },
           {
-            "name": "output_csv",
-            "description": "Path to the output CSV file where processed data will be written."
+            "name": "process_sales_data(input_csv: str, output_csv: str) -> None",
+            "description": "Main processing function that reads Square POS data, groups by date and category, and writes formatted output for QuickBooks import.",
+            "steps": [
+              "Reads input CSV and converts monetary columns to float",
+              "Groups data by date and category",
+              "Processes each category (admissions, gift sales, donations)",
+              "Calculates and records sales tax",
+              "Writes formatted output"
+            ]
           },
           {
-            "name": "input_df",
-            "description": "Pandas DataFrame containing the loaded sales data."
-          }
-        ],
-        "methods": [
-          {
-            "name": "__init__(self, input_csv: str, output_csv: str)",
-            "description": "Initializes the class with the input and output file paths."
-          },
-          {
-            "name": "clean_amount(self, value: any) -> float",
-            "description": "Cleans the input values by removing non-numeric characters and converting them to float."
-          },
-          {
-            "name": "load_data(self)",
-            "description": "Loads the input CSV data into a Pandas DataFrame."
-          },
-          {
-            "name": "process(self)",
-            "description": "The main function that orchestrates the sales processing and writing the results to the output CSV file."
-          },
-          {
-            "name": "process_admissions(self, writer: csv.writer, date: str, date_data: pd.Series) -> float",
-            "description": "Processes admissions sales, calculates the net amount and sales tax, and writes the results."
-          },
-          {
-            "name": "process_gift_sales(self, writer: csv.writer, date: str, date_data: pd.Series) -> float",
-            "description": "Processes gift sales, calculates the sales tax, and writes the results."
-          },
-          {
-            "name": "process_sales_tax(self, writer: csv.writer, date: str, total_sales_tax: float)",
-            "description": "Writes the total sales tax to the output file if applicable."
-          },
-          {
-            "name": "process_donations(self, writer: csv.writer, date: str, date_data: pd.Series)",
-            "description": "Processes donations (no tax applied) and writes the results."
-          },
-          {
-            "name": "write_record(self, writer: csv.writer, date: str, category: str, amount: float)",
-            "description": "Writes a sales record (formatted for QuickBooks) to the output CSV file."
+            "name": "write_record(writer: csv.writer, date: str, category: str, amount: float) -> None",
+            "description": "Writes a single record to the QuickBooks import CSV with proper formatting and category codes."
           }
         ]
       }
     },
     {
-      "title": "Input",
-      "content": "The input to the script is a CSV file containing the POS sales data. The expected structure of the input file is as follows:",
-      "example": {
-        "table": {
-          "headers": ["Category", "Date 1", "Date 2", "..."],
-          "rows": [
-            ["Admission", "$100.00", "$150.00", "..."],
-            ["gift sale", "$50.00", "$70.00", "..."],
-            ["Donation", "$20.00", "$30.00", "..."]
-          ]
-        }
-      }
+      "title": "Input Format",
+      "content": "Expects a CSV export from Square with the following key columns:",
+      "columns": [
+        "Date - Transaction date",
+        "Category - Transaction category (e.g., Admission, Donation, various gift shop categories)",
+        "Net Sales - Transaction amount excluding tax",
+        "Tax - Sales tax amount"
+      ]
     },
     {
-      "title": "Input Example",
-      "example": "Category,2024-08-01,2024-08-02\nAdmission,$100.00,$150.00\ngift sale,$50.00,$70.00\nDonation,$20.00,$30.00"
+      "title": "Output Format",
+      "content": "Generates a CSV file formatted for QuickBooks import with the following structure:",
+      "columns": [
+        "Deposit To - Always 'POS Clearing'",
+        "Date - Transaction date",
+        "Memo - Always 'gross sales'",
+        "Class - Category code (POS:admissions, POS:sales, POS:tax, POS:donation)",
+        "Amount - Transaction amount"
+      ]
     },
     {
-      "title": "Output",
-      "content": "The output is a CSV file formatted for QuickBooks (or a similar financial system) with the following structure:",
-      "table_structure": {
-        "headers": [
-          "Deposit To",
-          "Date",
-          "Memo",
-          "Received From",
-          "From Account",
-          "Line Memo",
-          "Check No.",
-          "Pmt Meth.",
-          "Class",
-          "Amount",
-          "Less Cash Back",
-          "Cash back Accnt.",
-          "Cash back Memo"
-        ],
-        "example_row": [
-          "POS Clearing",
-          "2024-08-01",
-          "gross sales",
-          "POS",
-          "POS Income",
-          "admission",
-          "",
-          "",
-          "POS:admissions",
-          "100.00",
-          "",
-          "",
-          ""
+      "title": "Category Mapping",
+      "content": {
+        "categories": [
+          {
+            "input": "Admission",
+            "output": "POS:admissions"
+          },
+          {
+            "input": "Donation",
+            "output": "POS:donation"
+          },
+          {
+            "input": "All others",
+            "output": "POS:sales"
+          },
+          {
+            "input": "Sales Tax",
+            "output": "POS:tax"
+          }
         ]
       }
     },
     {
       "title": "Usage",
-      "content": "To run the `POSDataProcessor` script, use the following command:",
-      "command": "python pos_data_processor.py <input_csv> [-o <output_csv>]",
+      "content": "Run the script from the command line:",
+      "command": "python px_prep_pos_data.py input.csv [-o output.csv]",
       "parameters": [
         {
-          "name": "<input_csv>",
-          "description": "(Required) The path to the CSV file containing sales data."
+          "name": "input.csv",
+          "description": "(Required) Path to Square POS export CSV file"
         },
         {
-          "name": "-o, --output",
-          "description": "(Optional) The path to the output CSV file. If not provided, the script will generate an output file named `input_filename_output.csv`."
+          "name": "-o output.csv",
+          "description": "(Optional) Path for output file. Defaults to input_filename_output.csv"
         }
-      ],
-      "example_usage": "python pos_data_processor.py sales_data.csv -o formatted_sales.csv"
+      ]
     },
     {
       "title": "Important Notes",
       "points": [
-        "Sales Tax Handling: The script automatically calculates and applies an 8.6% sales tax to applicable categories (e.g., `Admission`, `gift sale`). You can adjust the tax rate in the script if needed.",
-        "Customizable Output: The output is designed for QuickBooks, but it can be modified for other financial systems. Adjustments can be made to the fields like 'Deposit To', 'Memo', and 'Class' as needed.",
-        "Error Handling: The script includes error handling for file reading issues and ensures that any non-numeric values in the input are safely ignored."
+        "All monetary values are properly converted to float before processing",
+        "Sales tax is handled as provided in the input data",
+        "Categories are consolidated into four QuickBooks classes",
+        "Daily totals are calculated for each category"
       ]
-    },
-    {
-      "title": "Conclusion",
-      "content": "The `POSDataProcessor` script simplifies the process of converting POS sales data into a structured format suitable for financial reporting. Its class-based structure makes it easy to extend and customize, while built-in features like automatic sales tax calculation make it ideal for preparing data for QuickBooks or similar systems."
     }
   ]
 }

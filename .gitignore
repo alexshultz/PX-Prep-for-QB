@@ -10,5 +10,7 @@
 *.exe
 
 # input files that don't need to be uploaded
-category*.csv
-Transactions*.csv
+category-*.csv
+Transactions-*.csv
+items-*.csv
+tax-summary-*.csv
