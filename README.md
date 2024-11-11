@@ -99,7 +99,7 @@ python px_prep_bank_data.py your_bank_statement.csv
 ### Processing Square Sales Data
 
 1. Export your Square sales data as a CSV file
-   * In `squareup.com` look for 
+   * In `squareup.com` look for `Transactions` and export `Item Detail CSV`
 2. Open Anaconda Prompt/Terminal
 3. Type:
 ```bash
